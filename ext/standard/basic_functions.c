@@ -603,7 +603,12 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO(arginfo_array_keys_unfix, 0)
 	ZEND_ARG_INFO(0, input)   /* ARRAY_INFO(0, input, 0) */
-	ZEND_ARG_INFO(0, string) /* ARRAY_INFO(0, string, 0) */
+	ZEND_ARG_INFO(0, remove) /* ARRAY_INFO(0, remove, 0) */
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(arginfo_array_keys_prefix, 0)
+	ZEND_ARG_INFO(0, input)   /* ARRAY_INFO(0, input, 0) */
+	ZEND_ARG_INFO(0, prefix) /* ARRAY_INFO(0, prefix, 0) */
 ZEND_END_ARG_INFO()
 /* }}} */
 /* {{{ basic_functions.c */
@@ -3378,6 +3383,7 @@ const zend_function_entry basic_functions[] = { /* {{{ */
 	PHP_FE(array_combine,													arginfo_array_combine)
 	PHP_FE(array_key_exists,												arginfo_array_key_exists)
 	PHP_FE(array_keys_unfix,												arginfo_array_keys_unfix)
+	PHP_FE(array_keys_prefix,                                               arginfo_array_keys_prefix)
 
 	/* aliases from array.c */
 	PHP_FALIAS(pos,					current,								arginfo_current)
