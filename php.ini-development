@@ -1469,7 +1469,7 @@ session.use_trans_sid = 0
 ; Set session ID character length. This value could be between 22 to 256.
 ; Shorter length than default is supported only for compatibility reason.
 ; Users should use 32 or more chars.
-; http://php.net/session.sid_length
+; http://php.net/session.sid-length
 ; Default Value: 32
 ; Development Value: 26
 ; Production Value: 26
@@ -1758,17 +1758,6 @@ soap.wsdl_cache_limit = 5
 [ldap]
 ; Sets the maximum number of open links or -1 for unlimited.
 ldap.max_links = -1
-
-[mcrypt]
-; For more information about mcrypt settings see http://php.net/mcrypt-module-open
-
-; Directory where to load mcrypt algorithms
-; Default: Compiled in into libmcrypt (usually /usr/local/lib/libmcrypt)
-;mcrypt.algorithms_dir=
-
-; Directory where to load mcrypt modes
-; Default: Compiled in into libmcrypt (usually /usr/local/lib/libmcrypt)
-;mcrypt.modes_dir=
 
 [dba]
 ;dba.default_handler=

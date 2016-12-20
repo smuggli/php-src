@@ -14,6 +14,8 @@ PHP                                                                        NEWS
     (Yasuo)
   . Implemented FR #49806 (proc_nice() for Windows). (Kalle)
   . Fix pthreads detection when cross-compiling (ffontaine)
+  . Fixed memory leaks caused by exceptions thrown from destructors. (Bob,
+    Dmitry).
   . Fixed bug #73215 (uniqid() should use better random source). (Yasuo)
   . Fixed bug #73337 (try/catch not working with two exceptions inside a same
     operation). (Dmitry)
@@ -53,8 +55,11 @@ PHP                                                                        NEWS
   . Added array input support to mb_convert_encoding(). (Yasuo)
   . Added array input support to mb_check_encoding(). (Yasuo)
 
+- Mcrypt:
+  . The deprecated mcrypt extension has been moved to PECL. (leigh)
+
 - PDO:
-  . Add PDOStatement::activeQueryString(). (Adam Baratz)
+  . Add "Sent SQL" to debug dump for emulated prepares. (Adam Baratz)
 
 - PDO_DBlib:
   . Fixed bug #73234 (Emulated statements let value dictate parameter type).
@@ -67,6 +72,9 @@ PHP                                                                        NEWS
 - SOAP:
   . Fixed bug #69137 (Peer verification fails when using a proxy with SoapClient)
     (Keith Smiley)
+
+- SQLite3:
+  . Update to Sqlite 3.15.2. (cmb)
 
 - XML:
   . Moved utf8_encode() and utf8_decode() to the Standard extension. (Andrea)

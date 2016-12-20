@@ -72,7 +72,7 @@ PHP_INI_END()
 
 static zend_bool phpdbg_booted = 0;
 static zend_bool phpdbg_fully_started = 0;
-zend_bool use_mm_wrappers = 0;
+zend_bool use_mm_wrappers = 1;
 
 static void php_phpdbg_destroy_bp_file(zval *brake) /* {{{ */
 {
@@ -1331,7 +1331,7 @@ void phpdbg_free_wrapper(void *p ZEND_FILE_LINE_DC ZEND_FILE_LINE_ORIG_DC) /* {{
 		 */
 	} else {
 		phpdbg_watch_efree(p);
-		return _zend_mm_free(heap, p ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
+		_zend_mm_free(heap, p ZEND_FILE_LINE_RELAY_CC ZEND_FILE_LINE_ORIG_RELAY_CC);
 	}
 } /* }}} */
 

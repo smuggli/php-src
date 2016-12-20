@@ -269,7 +269,7 @@ static void param_dtor(zval *el) /* {{{ */
 
 	/* tell the driver that it is going away */
 	if (param->stmt->methods->param_hook) {
-			param->stmt->methods->param_hook(param->stmt, param, PDO_PARAM_EVT_FREE);
+		param->stmt->methods->param_hook(param->stmt, param, PDO_PARAM_EVT_FREE);
 	}
 
 	if (param->name) {
@@ -486,7 +486,7 @@ static PHP_METHOD(PDOStatement, execute)
 		 * quoted.
          */
 
-		/* string is leftover from previous calls so PDOStatement::activeQueryString() can access */
+		/* string is leftover from previous calls so PDOStatement::debugDumpParams() can access */
 		if (stmt->active_query_string && stmt->active_query_string != stmt->query_string) {
 			efree(stmt->active_query_string);
 		}
@@ -2090,22 +2090,6 @@ static PHP_METHOD(PDOStatement, closeCursor)
 }
 /* }}} */
 
-/* {{{ proto string PDOStatement::activeQueryString()
-   Fetch the last executed query string associated with the statement handle */
-static PHP_METHOD(PDOStatement, activeQueryString)
-{
-	PHP_STMT_GET_OBJ;
-
-	if (stmt->active_query_string) {
-		RETURN_STRING(stmt->active_query_string);
-	} else if (stmt->query_string) {
-		RETURN_STRING(stmt->query_string);
-	} else {
-		RETURN_FALSE;
-	}
-}
-/* }}} */
-
 /* {{{ proto void PDOStatement::debugDumpParams()
    A utility for internals hackers to debug parameter internals */
 static PHP_METHOD(PDOStatement, debugDumpParams)
@@ -2121,6 +2105,14 @@ static PHP_METHOD(PDOStatement, debugDumpParams)
 	php_stream_printf(out, "SQL: [%zd] %.*s\n",
 		stmt->query_stringlen,
 		(int) stmt->query_stringlen, stmt->query_string);
+
+	/* show parsed SQL if emulated prepares enabled */
+	/* pointers will be equal if PDO::query() was invoked */
+	if (stmt->active_query_string != NULL && stmt->active_query_string != stmt->query_string) {
+		php_stream_printf(out, "Sent SQL: [%zd] %.*s\n",
+			stmt->active_query_stringlen,
+			(int) stmt->active_query_stringlen, stmt->active_query_string);
+	}
 
 	php_stream_printf(out, "Params:  %d\n",
 		stmt->bound_params ? zend_hash_num_elements(stmt->bound_params) : 0);
@@ -2184,7 +2176,6 @@ const zend_function_entry pdo_dbstmt_functions[] = {
 	PHP_ME(PDOStatement, setFetchMode,	arginfo_pdostatement_setfetchmode,	ZEND_ACC_PUBLIC)
 	PHP_ME(PDOStatement, nextRowset,	arginfo_pdostatement__void,			ZEND_ACC_PUBLIC)
 	PHP_ME(PDOStatement, closeCursor,	arginfo_pdostatement__void,			ZEND_ACC_PUBLIC)
-	PHP_ME(PDOStatement, activeQueryString, arginfo_pdostatement__void,		ZEND_ACC_PUBLIC)
 	PHP_ME(PDOStatement, debugDumpParams, arginfo_pdostatement__void,		ZEND_ACC_PUBLIC)
 	PHP_ME(PDOStatement, __wakeup,		arginfo_pdostatement__void,			ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
 	PHP_ME(PDOStatement, __sleep,		arginfo_pdostatement__void,			ZEND_ACC_PUBLIC|ZEND_ACC_FINAL)
