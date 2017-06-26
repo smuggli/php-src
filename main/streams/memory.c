@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 7                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2016 The PHP Group                                |
+   | Copyright (c) 1997-2017 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -62,12 +62,8 @@ static size_t php_stream_memory_write(php_stream *stream, const char *buf, size_
 		} else {
 			tmp = erealloc(ms->data, ms->fpos + count);
 		}
-		if (!tmp) {
-			count = ms->fsize - ms->fpos + 1;
-		} else {
-			ms->data = tmp;
-			ms->fsize = ms->fpos + count;
-		}
+		ms->data = tmp;
+		ms->fsize = ms->fpos + count;
 	}
 	if (!ms->data)
 		count = 0;
@@ -493,9 +489,14 @@ static int php_stream_temp_cast(php_stream *stream, int castas, void **ret)
 		return FAILURE;
 	}
 
+	file = php_stream_fopen_tmpfile();
+	if (file == NULL) {
+		php_error_docref(NULL, E_WARNING, "Unable to create temporary file.");
+		return FAILURE;
+	}
+
 	/* perform the conversion and then pass the request on to the innerstream */
 	membuf = php_stream_memory_get_buffer(ts->innerstream, &memsize);
-	file = php_stream_fopen_tmpfile();
 	php_stream_write(file, membuf, memsize);
 	pos = php_stream_tell(ts->innerstream);
 

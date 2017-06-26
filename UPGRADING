@@ -35,9 +35,31 @@ PHP 7.2 UPGRADE NOTES
     /^(0|(-?[1-9][0-9]*))$/ where PHP_INT_MIN <= n <= PHP_INT_MAX) to integer
     keys. This fixes the behaviour of previous versions, where numeric string
     property names would become inaccessible string keys.
+  . Unqualified references to undefined constants now generate a Warning instead
+    of a notice. They will generate an Error in a future version of PHP.
+    (https://wiki.php.net/rfc/deprecate-bareword-strings)
+  . Minimum supported Windows versions are Windows 7/Server 2008 R2.
+  . Initial trait property value compatibility check will no longer perform
+    any casts. (Bug #74269)
+  . "object" (in any case) can no longer be used as a class name.
+
+- BCMath:
+  . The bcmod() function no longer truncates fractional numbers to integers. As
+    such, its behavior now follows fmod() rather than the `%` operator. For
+    example `bcmod('4', '3.5')` now returns '0.5' instead of '1'.
+
+- Hash:
+  . The hash_hmac(), hash_hmac_file() and hash_pbkdf2() functions no longer
+    accept non-cryptographic hashes.
+
+- JSON
+  . The json_decode() option JSON_OBJECT_AS_ARRAY is used if the second
+    parameter (assoc) is null. Previously JSON_OBJECT_AS_ARRAY was always
+    ignored.
 
 - Session:
-  . Session is made to manage session status corretly and prevents invalid operations.
+  . Removed register_globals related code and "!" can be used as $_SESSION key name.
+  . Session is made to manage session status correctly and prevents invalid operations.
     Only inappropriate codes are affected by this change. If you have problems with this,
     it means you have problem in your code.
     . Functions are made to set or return correct session status.
@@ -70,13 +92,50 @@ PHP 7.2 UPGRADE NOTES
 2. New Features
 ========================================
 
+- Core:
+  . It is now possible to remove argument type annotations when overriding an
+    inherited method. This complies with contravariance of method argument types
+    under the Liskov Substitution Principle.
+    (https://wiki.php.net/rfc/parameter-no-type-variance)
+  . It is now allowed to override an abstract method with another abstract
+    method in a child class.
+    (https://wiki.php.net/rfc/allow-abstract-function-override)
+  . A trailing comma in group use statements is now allowed.
+    (https://wiki.php.net/rfc/list-syntax-trailing-commas)
+  . The "object" type annotation is now supported.
+    (https://wiki.php.net/rfc/object-typehint)
+
+- DBA:
+  . Implemented support for the LMDB backend.
+
+- OCI8:
+  . Added Oracle Database Transparent Application Failover (TAF) callback support.
+
 - PCRE:
   . Added `J` modifier for setting PCRE_DUPNAMES.
+  . Added `PREG_UNMATCHED_AS_NULL` flag to allow distinguish between unmatched
+    subpatterns and empty matches by reporting NULL and "" (empty string),
+    respectively.
+
+- SQLite3:
+  . Implemented writing to BLOBs.
 
 - Standard:
   . Simplified password hashing API updated to support Argon2i hashes when PHP is compiled with libargon2
     (https://wiki.php.net/rfc/argon2_password_hash).
   . proc_nice() is now supported on Windows platforms.
+
+- Zip:
+  . read/write encrypted archive, relying on libzip 1.2.0,
+    using new methods:
+      ZipArchive::setEncryptionName($name, $method [, $password]);
+      ZipArchive::setEncryptionIndex($index, $method [, $password]);
+    and new constants:
+      ZipArchive::EM_NONE
+      ZipArchive::EM_AES_128
+      ZipArchive::EM_AES_192
+      ZipArchive::EM_AES_256
+  . accept 'password' from zip stream context
 
 ========================================
 3. Changes in SAPI modules
@@ -86,9 +145,39 @@ PHP 7.2 UPGRADE NOTES
 4. Deprecated Functionality
 ========================================
 
+All the deprecated functionality listed in the following will be removed in
+PHP 8.0.
+
+- Core:
+  . The trace_errors ini directive has been deprecated.
+  . The __autoload() mechanism has been deprecated, use spl_autoload_register()
+    instead.
+  . The (unset) cast has been deprecated. This does not affect the unset($var)
+    language construct.
+  . The create_function() function has been deprecated, use anonymous functions
+    instead.
+  . The each() function has been deprecated, use a foreach loop instead.
+
 - GD:
-  . png2wbmp() and jpeg2wbmp() have been deprecated, and will be removed as of
-    PHP 8.0.0.
+  . png2wbmp() and jpeg2wbmp() have been deprecated.
+
+- GMP:
+  . The gmp_random() function has been deprecated, use gmp_random_bits() or
+    gmp_random_range() instead.
+
+- Intl:
+  . INTL_IDNA_VARIANT_2003 has been deprecated; use INTL_IDNA_VARIANT_UTS46
+    instead.
+
+- Mbstring:
+  . The mbstring.func_overload ini directive has been deprecated.
+
+- Standard:
+  . Calling parse_str() without the result argument has been deprecated.
+  . Calling assert() with a string argument has been deprecated, use an ordinary
+    expression instead.
+
+See also: https://wiki.php.net/rfc/deprecations_php_7_2
 
 ========================================
 5. Changed Functions
@@ -101,7 +190,7 @@ PHP 7.2 UPGRADE NOTES
     'PASSWORD_ARGON2_DEFAULT_TIME_COST', and 'PASSWORD_ARGON2_DEFAULT_THREADS' respectively if not set.
   . password_verify() can verify Argon2i hashes.
   . password_get_info() and password_needs_rehash() can accept Argon2i hashes.
-  . mail()/mb_send_mail() accept array $extra_header. Array paramter is checked against RFC 2822.
+  . mail()/mb_send_mail() accept array $extra_header. Array parameter is checked against RFC 2822.
     Array format is 
     $extra_headers = [
       'Header-Name' => 'Header value',
@@ -110,6 +199,8 @@ PHP 7.2 UPGRADE NOTES
     ];
   . count() now raises a warning when an invalid parameter is passed.
     Only arrays and objects implementing the Countable interface should be passed.
+  . pack() and unpack() now support float and double in both little and big endian.
+  . number_format() ensures zero values never contain a negative sign.
 
 - XML:
   . utf8_encode() and utf8_decode() have been moved to the Standard extension
@@ -127,10 +218,15 @@ PHP 7.2 UPGRADE NOTES
   . Added imagesetclip() and imagegetclip().
   . Added imageopenpolygon().
   . Added imageresolution().
+  . Added imagecreatefrombmp() and imagebmp().
 
 - Mbstring:
   . Added mb_chr() and mb_ord().
   . Added mb_scurb() that scrub broken multibyte strings.
+
+- OCI8:
+  . Added oci_register_taf_callback() and oci_disable_taf_callback() for
+    Oracle Database TAF callback support.
 
 - Sockets:
   . Added socket_addrinfo_lookup(), socket_addrinfo_connect(),
@@ -156,7 +252,8 @@ PHP 7.2 UPGRADE NOTES
 
 - EXIF:
    . Added extended exif tag support for the following formats: 
-     Samsung, DJI, Panasonic, Sony, Pentax, Minolta & Sigma/Foveon.
+     Samsung, DJI, Panasonic, Sony, Pentax, Minolta, Sigma/Foveon, 
+	 AGFA, Kyocera, Ricoh & Epson.
 
 - GD:
   . Removed --enable-gd-native-ttf configuration option which was unused as
@@ -167,9 +264,17 @@ PHP 7.2 UPGRADE NOTES
 
 - Mbstring
   . mb_check_encoding() accepts array parameter. Both key and value
-    ecodings are checked recursively.
+    encodings are checked recursively.
   . mb_convert_encoding() accepts array parameter. Only value encodings
     are converted recursively.
+
+- PDO_OCI:
+  . The '--with-pdo-oci' configure syntax no longer needs the vesion number of the
+    Oracle Instant Client.
+
+- pdo_sqlite
+  . Use sqlite3_prepare_v2() and sqlite3_close_v2() functions instead of their
+    legacy counterparts.
 
 ========================================
 10. New Global Constants
@@ -182,12 +287,17 @@ PHP 7.2 UPGRADE NOTES
                       x + 1.0 != 1.0
   . PHP_FLOAT_MIN     min representable float number
   . PHP_FLOAT_MAX     max representable float number
+  . PHP_OS_FAMILY     current operating system family
 
 - Fileinfo:
   . FILEINFO_EXTENSION include list of possible file extensions
 
 - GD:
   . IMG_EFFECT_MULTIPLY
+  . IMG_BMP
+
+- PCRE
+  . PREG_UNMATCHED_AS_NULL
 
 - Standard:
   . PASSWORD_ARGON2_DEFAULT_MEMORY_COST
@@ -201,6 +311,9 @@ PHP 7.2 UPGRADE NOTES
 
 - sql.safe_mode
   . This INI directive have been removed.
+
+- realpath_cache_size
+  . Set to 4096k by default
 
 ========================================
 12. Windows Support

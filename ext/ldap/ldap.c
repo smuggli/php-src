@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 7                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2016 The PHP Group                                |
+   | Copyright (c) 1997-2017 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -409,7 +409,7 @@ PHP_FUNCTION(ldap_connect)
 	{
 		int rc = LDAP_SUCCESS;
 		char	*url = host;
-		if (!ldap_is_ldap_url(url)) {
+		if (url && !ldap_is_ldap_url(url)) {
 			int	urllen = hostlen + sizeof( "ldap://:65535" );
 
 			if (port <= 0 || port > 65535) {
@@ -419,7 +419,7 @@ PHP_FUNCTION(ldap_connect)
 			}
 
 			url = emalloc(urllen);
-			snprintf( url, urllen, "ldap://%s:" ZEND_LONG_FMT, host ? host : "", port );
+			snprintf( url, urllen, "ldap://%s:" ZEND_LONG_FMT, host, port );
 		}
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP
@@ -1470,7 +1470,7 @@ static void php_ldap_do_modify(INTERNAL_FUNCTION_PARAMETERS, int oper)
 	zend_ulong index;
 	int is_full_add=0; /* flag for full add operation so ldap_mod_add can be put back into oper, gerrit THomson */
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "rsa", &link, &dn, &dn_len, &entry) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "rsa/", &link, &dn, &dn_len, &entry) != SUCCESS) {
 		return;
 	}
 
@@ -1518,6 +1518,7 @@ static void php_ldap_do_modify(INTERNAL_FUNCTION_PARAMETERS, int oper)
 		if (Z_TYPE_P(value) != IS_ARRAY) {
 			num_values = 1;
 		} else {
+			SEPARATE_ARRAY(value);
 			num_values = zend_hash_num_elements(Z_ARRVAL_P(value));
 		}
 
@@ -1723,7 +1724,7 @@ PHP_FUNCTION(ldap_modify_batch)
 	);
 	*/
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "rsa", &link, &dn, &dn_len, &mods) != SUCCESS) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "rsa/", &link, &dn, &dn_len, &mods) != SUCCESS) {
 		return;
 	}
 
@@ -1768,6 +1769,7 @@ PHP_FUNCTION(ldap_modify_batch)
 				RETURN_FALSE;
 			}
 
+			SEPARATE_ARRAY(mod);
 			/* for the modification hashtable... */
 			zend_hash_internal_pointer_reset(Z_ARRVAL_P(mod));
 			num_modprops = zend_hash_num_elements(Z_ARRVAL_P(mod));
@@ -1842,6 +1844,7 @@ PHP_FUNCTION(ldap_modify_batch)
 						RETURN_FALSE;
 					}
 
+					SEPARATE_ARRAY(modinfo);
 					/* is the array not empty? */
 					zend_hash_internal_pointer_reset(Z_ARRVAL_P(modinfo));
 					num_modvals = zend_hash_num_elements(Z_ARRVAL_P(modinfo));
@@ -2780,7 +2783,6 @@ PHP_FUNCTION(ldap_set_rebind_proc)
 {
 	zval *link, *callback;
 	ldap_linkdata *ld;
-	zend_string *callback_name;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "rz", &link, &callback) != SUCCESS) {
 		RETURN_FALSE;
@@ -2801,12 +2803,12 @@ PHP_FUNCTION(ldap_set_rebind_proc)
 	}
 
 	/* callable? */
-	if (!zend_is_callable(callback, 0, &callback_name)) {
+	if (!zend_is_callable(callback, 0, NULL)) {
+		zend_string *callback_name = zend_get_callable_name(callback);
 		php_error_docref(NULL, E_WARNING, "Two arguments expected for '%s' to be a valid callback", ZSTR_VAL(callback_name));
 		zend_string_release(callback_name);
 		RETURN_FALSE;
 	}
-	zend_string_release(callback_name);
 
 	/* register rebind procedure */
 	if (Z_ISUNDEF(ld->rebindproc)) {

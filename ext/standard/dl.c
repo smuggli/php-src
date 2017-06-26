@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 7                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2016 The PHP Group                                |
+   | Copyright (c) 1997-2017 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -53,9 +53,9 @@ PHPAPI PHP_FUNCTION(dl)
 	char *filename;
 	size_t filename_len;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "s", &filename, &filename_len) == FAILURE) {
-		return;
-	}
+	ZEND_PARSE_PARAMETERS_START(1, 1)
+		Z_PARAM_STRING(filename, filename_len)
+	ZEND_PARSE_PARAMETERS_END();
 
 	if (!PG(enable_dl)) {
 		php_error_docref(NULL, E_WARNING, "Dynamically loaded extensions aren't enabled");
@@ -84,7 +84,7 @@ PHPAPI int php_load_extension(char *filename, int type, int start_now)
 	char *libpath;
 	zend_module_entry *module_entry;
 	zend_module_entry *(*get_module)(void);
-	int error_type;
+	int error_type, slash_suffix;
 	char *extension_dir;
 
 	if (type == MODULE_PERSISTENT) {
@@ -109,11 +109,34 @@ PHPAPI int php_load_extension(char *filename, int type, int start_now)
 		libpath = estrdup(filename);
 	} else if (extension_dir && extension_dir[0]) {
 		int extension_dir_len = (int)strlen(extension_dir);
-
-		if (IS_SLASH(extension_dir[extension_dir_len-1])) {
+		slash_suffix = IS_SLASH(extension_dir[extension_dir_len-1]);
+		/* Try as filename first */
+		if (slash_suffix) {
 			spprintf(&libpath, 0, "%s%s", extension_dir, filename); /* SAFE */
 		} else {
 			spprintf(&libpath, 0, "%s%c%s", extension_dir, DEFAULT_SLASH, filename); /* SAFE */
+		}
+		if (VCWD_ACCESS(libpath, F_OK)) {
+			/* If file does not exist, consider as extension name and build file name */
+			const char *libpath_prefix = "";
+			char *orig_libpath = libpath;
+#if PHP_WIN32
+			libpath_prefix = "php_";
+#endif
+			if (slash_suffix) {
+				spprintf(&libpath, 0, "%s%s%s." PHP_SHLIB_SUFFIX, extension_dir, libpath_prefix, filename); /* SAFE */
+			} else {
+				spprintf(&libpath, 0, "%s%c%s%s." PHP_SHLIB_SUFFIX, extension_dir, DEFAULT_SLASH, libpath_prefix, filename); /* SAFE */
+			}
+
+			if (VCWD_ACCESS(libpath, F_OK)) {
+				php_error(error_type, "Cannot access dynamic library '%s' (tried : %s, %s)",
+					filename, orig_libpath, libpath);
+				efree(orig_libpath);
+				efree(libpath);
+				return FAILURE;
+			}
+			efree(orig_libpath);
 		}
 	} else {
 		return FAILURE; /* Not full path given or extension_dir is not set */
@@ -122,7 +145,7 @@ PHPAPI int php_load_extension(char *filename, int type, int start_now)
 	/* load dynamic symbol */
 	handle = DL_LOAD(libpath);
 	if (!handle) {
-#if PHP_WIN32
+#ifdef PHP_WIN32
 		char *err = GET_DL_ERROR();
 		if (err && (*err != '\0')) {
 			php_error_docref(NULL, error_type, "Unable to load dynamic library '%s' - %s", libpath, err);

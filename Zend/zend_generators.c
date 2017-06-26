@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2016 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2017 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -108,7 +108,7 @@ static void zend_generator_cleanup_unfinished_execution(
 		if (UNEXPECTED(generator->frozen_call_stack)) {
 			zend_generator_restore_call_stack(generator);
 		}
-		zend_cleanup_unfinished_execution(execute_data, op_num, 0);
+		zend_cleanup_unfinished_execution(execute_data, op_num, catch_op_num);
 	}
 }
 /* }}} */

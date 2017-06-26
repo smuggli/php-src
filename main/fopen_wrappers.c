@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 7                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2016 The PHP Group                                |
+   | Copyright (c) 1997-2017 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -406,16 +406,14 @@ PHPAPI int php_fopen_primary_script(zend_file_handle *file_handle)
 		IS_ABSOLUTE_PATH(PG(doc_root), length)) {
 		int path_len = (int)strlen(path_info);
 		filename = emalloc(length + path_len + 2);
-		if (filename) {
-			memcpy(filename, PG(doc_root), length);
-			if (!IS_SLASH(filename[length - 1])) {	/* length is never 0 */
-				filename[length++] = PHP_DIR_SEPARATOR;
-			}
-			if (IS_SLASH(path_info[0])) {
-				length--;
-			}
-			strncpy(filename + length, path_info, path_len + 1);
+		memcpy(filename, PG(doc_root), length);
+		if (!IS_SLASH(filename[length - 1])) {	/* length is never 0 */
+			filename[length++] = PHP_DIR_SEPARATOR;
 		}
+		if (IS_SLASH(path_info[0])) {
+			length--;
+		}
+		strncpy(filename + length, path_info, path_len + 1);
 	} else {
 		filename = SG(request_info).path_translated;
 	}
@@ -503,7 +501,7 @@ PHPAPI zend_string *php_resolve_path(const char *filename, int filename_length, 
 	     (IS_SLASH(filename[1]) ||
 	      ((filename[1] == '.') && IS_SLASH(filename[2])))) ||
 	    IS_ABSOLUTE_PATH(filename, filename_length) ||
-#if PHP_WIN32
+#ifdef PHP_WIN32
 		/* This should count as an absolute local path as well, however
 		   IS_ABSOLUTE_PATH doesn't care about this path form till now. It
 		   might be a big thing to extend, thus just a local handling for

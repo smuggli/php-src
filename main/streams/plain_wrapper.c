@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 7                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2016 The PHP Group                                |
+   | Copyright (c) 1997-2017 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -95,6 +95,12 @@ PHPAPI int php_stream_parse_fopen_modes(const char *mode, int *open_flags)
 	} else {
 		flags |= O_RDONLY;
 	}
+
+#if defined(O_CLOEXEC)
+	if (strchr(mode, 'e')) {
+		flags |= O_CLOEXEC;
+	}
+#endif
 
 #if defined(O_NONBLOCK)
 	if (strchr(mode, 'n')) {
@@ -1001,7 +1007,7 @@ PHPAPI php_stream *_php_stream_fopen(const char *filename, const char *mode, zen
 				/* fall through */
 
 			case PHP_STREAM_PERSISTENT_FAILURE:
-				efree(persistent_id);;
+				efree(persistent_id);
 				return ret;
 		}
 	}
@@ -1304,7 +1310,7 @@ static int php_plain_files_rmdir(php_stream_wrapper *wrapper, const char *url, i
 		return 0;
 	}
 
-#if PHP_WIN32
+#ifdef PHP_WIN32
 	if (!php_win32_check_trailing_space(url, (int)strlen(url))) {
 		php_error_docref1(NULL, url, E_WARNING, "%s", strerror(ENOENT));
 		return 0;
@@ -1331,11 +1337,11 @@ static int php_plain_files_metadata(php_stream_wrapper *wrapper, const char *url
 #endif
 	mode_t mode;
 	int ret = 0;
-#if PHP_WIN32
+#ifdef PHP_WIN32
 	int url_len = (int)strlen(url);
 #endif
 
-#if PHP_WIN32
+#ifdef PHP_WIN32
 	if (!php_win32_check_trailing_space(url, url_len)) {
 		php_error_docref1(NULL, url, E_WARNING, "%s", strerror(ENOENT));
 		return 0;

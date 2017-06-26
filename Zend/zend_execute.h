@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2016 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2017 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -81,6 +81,10 @@ static zend_always_inline zval* zend_assign_to_variable(zval *variable_ptr, zval
 				return variable_ptr;
 			}
 			if (ZEND_CONST_COND(value_type & (IS_VAR|IS_CV), 1) && variable_ptr == value) {
+				if (value_type == IS_VAR && ref) {
+					ZEND_ASSERT(GC_REFCOUNT(ref) > 1);
+					--GC_REFCOUNT(ref);
+				}
 				return variable_ptr;
 			}
 			garbage = Z_COUNTED_P(variable_ptr);
@@ -294,8 +298,7 @@ ZEND_API zend_class_entry *zend_fetch_class(zend_string *class_name, int fetch_t
 ZEND_API zend_class_entry *zend_fetch_class_by_name(zend_string *class_name, const zval *key, int fetch_type);
 void zend_verify_abstract_class(zend_class_entry *ce);
 
-ZEND_API void zend_fetch_dimension_by_zval(zval *result, zval *container, zval *dim);
-ZEND_API void zend_fetch_dimension_by_zval_is(zval *result, zval *container, zval *dim, int dim_type);
+ZEND_API void zend_fetch_dimension_const(zval *result, zval *container, zval *dim, int type);
 
 ZEND_API zval* zend_get_compiled_variable_value(const zend_execute_data *execute_data_ptr, uint32_t var);
 

@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend Engine                                                          |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2016 Zend Technologies Ltd. (http://www.zend.com) |
+   | Copyright (c) 1998-2017 Zend Technologies Ltd. (http://www.zend.com) |
    +----------------------------------------------------------------------+
    | This source file is subject to version 2.00 of the Zend license,     |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -76,7 +76,7 @@ ZEND_API void zend_objects_store_mark_destructed(zend_objects_store *objects)
 	}
 }
 
-ZEND_API void zend_objects_store_free_object_storage(zend_objects_store *objects)
+ZEND_API void zend_objects_store_free_object_storage(zend_objects_store *objects, zend_bool fast_shutdown)
 {
 	zend_object **obj_ptr, **end, *obj;
 
@@ -88,20 +88,37 @@ ZEND_API void zend_objects_store_free_object_storage(zend_objects_store *objects
 	end = objects->object_buckets + 1;
 	obj_ptr = objects->object_buckets + objects->top;
 
-	do {
-		obj_ptr--;
-		obj = *obj_ptr;
-		if (IS_OBJ_VALID(obj)) {
-			if (!(GC_FLAGS(obj) & IS_OBJ_FREE_CALLED)) {
-				GC_FLAGS(obj) |= IS_OBJ_FREE_CALLED;
-				if (obj->handlers->free_obj) {
-					GC_REFCOUNT(obj)++;
-					obj->handlers->free_obj(obj);
-					GC_REFCOUNT(obj)--;
+	if (fast_shutdown) {
+		do {
+			obj_ptr--;
+			obj = *obj_ptr;
+			if (IS_OBJ_VALID(obj)) {
+				if (!(GC_FLAGS(obj) & IS_OBJ_FREE_CALLED)) {
+					GC_FLAGS(obj) |= IS_OBJ_FREE_CALLED;
+					if (obj->handlers->free_obj && obj->handlers->free_obj != zend_object_std_dtor) {
+						GC_REFCOUNT(obj)++;
+						obj->handlers->free_obj(obj);
+						GC_REFCOUNT(obj)--;
+					}
 				}
 			}
-		}
-	} while (obj_ptr != end);
+		} while (obj_ptr != end);
+	} else {
+		do {
+			obj_ptr--;
+			obj = *obj_ptr;
+			if (IS_OBJ_VALID(obj)) {
+				if (!(GC_FLAGS(obj) & IS_OBJ_FREE_CALLED)) {
+					GC_FLAGS(obj) |= IS_OBJ_FREE_CALLED;
+					if (obj->handlers->free_obj) {
+						GC_REFCOUNT(obj)++;
+						obj->handlers->free_obj(obj);
+						GC_REFCOUNT(obj)--;
+					}
+				}
+			}
+		} while (obj_ptr != end);
+	}
 }
 
 
@@ -111,7 +128,10 @@ ZEND_API void zend_objects_store_put(zend_object *object)
 {
 	int handle;
 
-	if (EG(objects_store).free_list_head != -1) {
+	/* When in shutdown sequesnce - do not reuse previously freed handles, to make sure
+	 * the dtors for newly created objects are called in zend_objects_store_call_destructors() loop
+	 */
+	if (!(EG(flags) & EG_FLAGS_IN_SHUTDOWN) && EG(objects_store).free_list_head != -1) {
 		handle = EG(objects_store).free_list_head;
 		EG(objects_store).free_list_head = GET_OBJ_BUCKET_NUMBER(EG(objects_store).object_buckets[handle]);
 	} else {
@@ -149,18 +169,12 @@ ZEND_API void zend_objects_store_del(zend_object *object) /* {{{ */
 	if (EG(objects_store).object_buckets &&
 	    IS_OBJ_VALID(EG(objects_store).object_buckets[object->handle])) {
 		if (GC_REFCOUNT(object) == 0) {
-			int failure = 0;
-
 			if (!(GC_FLAGS(object) & IS_OBJ_DESTRUCTOR_CALLED)) {
 				GC_FLAGS(object) |= IS_OBJ_DESTRUCTOR_CALLED;
 
 				if (object->handlers->dtor_obj) {
 					GC_REFCOUNT(object)++;
-					zend_try {
-						object->handlers->dtor_obj(object);
-					} zend_catch {
-						failure = 1;
-					} zend_end_try();
+					object->handlers->dtor_obj(object);
 					GC_REFCOUNT(object)--;
 				}
 			}
@@ -173,23 +187,15 @@ ZEND_API void zend_objects_store_del(zend_object *object) /* {{{ */
 				if (!(GC_FLAGS(object) & IS_OBJ_FREE_CALLED)) {
 					GC_FLAGS(object) |= IS_OBJ_FREE_CALLED;
 					if (object->handlers->free_obj) {
-						zend_try {
-							GC_REFCOUNT(object)++;
-							object->handlers->free_obj(object);
-							GC_REFCOUNT(object)--;
-						} zend_catch {
-							failure = 1;
-						} zend_end_try();
+						GC_REFCOUNT(object)++;
+						object->handlers->free_obj(object);
+						GC_REFCOUNT(object)--;
 					}
 				}
 				ptr = ((char*)object) - object->handlers->offset;
 				GC_REMOVE_FROM_BUFFER(object);
 				efree(ptr);
 				ZEND_OBJECTS_STORE_ADD_TO_FREE_LIST(handle);
-			}
-
-			if (failure) {
-				zend_bailout();
 			}
 		} else {
 			GC_REFCOUNT(object)--;
