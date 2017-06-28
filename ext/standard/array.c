@@ -1,4 +1,4 @@
-/*
+﻿/*
    +----------------------------------------------------------------------+
    | PHP Version 7                                                        |
    +----------------------------------------------------------------------+
@@ -6320,9 +6320,9 @@ PHP_FUNCTION(array_combine)
 Creates an array by using the elements of the first parameter and removes the second parameter from the array keys  */
 PHP_FUNCTION(array_keys_unfix)
 {
-	zval *input,				/* Input array */
-		 *entry, 
-		 new_val;
+	zval *input;
+	zval *entry;
+	zval new_val;
 
 	zend_string *remove;		/* String to remove */
 	zend_string *str_idx;
@@ -6333,11 +6333,11 @@ PHP_FUNCTION(array_keys_unfix)
 		Z_PARAM_STR(remove)
 	ZEND_PARSE_PARAMETERS_END();
 
-	array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL_P(input)));
-
 	if (!zend_hash_num_elements(Z_ARRVAL_P(input))) {
-		return;
+		RETURN_ZVAL(input, 1, 0);
 	}
+
+	array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL_P(input)));
 
 	zend_hash_real_init(Z_ARRVAL_P(return_value), 1);
 
@@ -6361,12 +6361,12 @@ PHP_FUNCTION(array_keys_unfix)
 Creates an array by using the elements of the first parameter and adds the second parameter as prefix to every key  */
 PHP_FUNCTION(array_keys_prefix)
 {
-	zval *input,				/* Input array */
-		*entry;
+	zval *input;
+	zval *entry;
 
-	zend_string *prefix,		/* String to add */
-				*str_idx,
-				*new_val;
+	zend_string *prefix;
+	zend_string *str_idx;
+	zend_string *new_val;
 	zend_ulong num_idx;
 
 	char *new_str;
@@ -6376,11 +6376,11 @@ PHP_FUNCTION(array_keys_prefix)
 		Z_PARAM_STR(prefix)
 	ZEND_PARSE_PARAMETERS_END();
 
-	array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL_P(input)));
-
 	if (!zend_hash_num_elements(Z_ARRVAL_P(input))) {
-		return;
+		RETURN_ZVAL(input, 1, 0);
 	}
+
+	array_init_size(return_value, zend_hash_num_elements(Z_ARRVAL_P(input)));
 
 	zend_hash_real_init(Z_ARRVAL_P(return_value), 1);
 

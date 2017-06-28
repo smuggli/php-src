@@ -1,5 +1,5 @@
 --TEST--
-Test array_keys_unfix() function (error conditions)
+Test array_keys_prefix() function (error conditions)
 --FILE--
 <?php
 
